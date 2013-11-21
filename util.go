@@ -1,15 +1,15 @@
 package main
 
 import (
-	"net/http"
+	"fmt"
 	"io"
-	"os"
 	"io/ioutil"
 	"log"
-	"time"
-	"fmt"
+	"net/http"
+	"os"
 	"strings"
-	)
+	"time"
+)
 
 // basic GET function
 func httpGET(url string) (string, error) {
@@ -30,7 +30,7 @@ func httpGET(url string) (string, error) {
 }
 
 func httpHEAD(url string) (string, error) {
-	cl:= &http.Client{}
+	cl := &http.Client{}
 	req, _ := http.NewRequest("HEAD", url, nil)
 
 	resp, err := cl.Do(req)
@@ -43,32 +43,33 @@ func httpHEAD(url string) (string, error) {
 }
 
 func downloadFromUrl(url string, folder string) {
-        tokens := strings.Split(url, "/")
-        fileName := tokens[len(tokens)-1]
-        fmt.Println("Downloading", url, "to", fileName)
+	tokens := strings.Split(url, "/")
+	fileName := tokens[len(tokens)-1]
+	
+	output, error := os.Create(folder + "/" + fileName)	
+	if error != nil {
+		fmt.Println("Error while creating", fileName, "-", error)
+		return
+	}
+	defer output.Close()
 
-        // TODO: check file existence first with io.IsExist
-        output, error := os.Create(folder + "/" + fileName)
-        if error != nil {
-                fmt.Println("Error while creating", fileName, "-", error)
-                return
-        }
-        defer output.Close()
+	response, error := http.Get(url)
+	if error != nil {
+		fmt.Println("Error while downloading", url, "-", error)
+		return
+	}
+	defer response.Body.Close()
 
-        response, error := http.Get(url)
-        if error != nil {
-                fmt.Println("Error while downloading", url, "-", error)
-                return
-        }
-        defer response.Body.Close()
+	_, error = io.Copy(output, response.Body)
+	if error != nil {
+		fmt.Println("Error while downloading", url, "-", error)
+		return
+	}
+}
 
-        n, error := io.Copy(output, response.Body)
-        if error != nil {
-                fmt.Println("Error while downloading", url, "-", error)
-                return
-        }
-
-        fmt.Println(n, "bytes downloaded.")
+func writeMetaData(url string, folder string) {
+	d1 := []byte(url)
+	ioutil.WriteFile(folder +"/metadata.txt", d1, 0644)
 }
 
 // "main" logger, maybe to file, default to stdout
