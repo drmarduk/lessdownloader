@@ -45,8 +45,8 @@ func httpHEAD(url string) (string, error) {
 func downloadFromUrl(url string, folder string) {
 	tokens := strings.Split(url, "/")
 	fileName := tokens[len(tokens)-1]
-	
-	output, error := os.Create(folder + "/" + fileName)	
+
+	output, error := os.Create(folder + "/" + fileName)
 	if error != nil {
 		fmt.Println("Error while creating", fileName, "-", error)
 		return
@@ -69,7 +69,7 @@ func downloadFromUrl(url string, folder string) {
 
 func writeMetaData(url string, folder string) {
 	d1 := []byte(url)
-	ioutil.WriteFile(folder +"/metadata.txt", d1, 0644)
+	ioutil.WriteFile(folder+"/metadata.txt", d1, 0644)
 }
 
 // "main" logger, maybe to file, default to stdout
