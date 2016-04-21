@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"regexp"
@@ -10,6 +11,40 @@ import (
 )
 
 func main() {
+	var arg *string = flag.String("url", "", "url to parse")
+	var typ *string = flag.String("typ", "img", "what typ to process")
+	//var action *string = flag.String("action", "download", "the action to perform")
+	flag.Parse()
+	src, _ := httpGET(*arg)
+	url := ""
+	switch *typ {
+	case "img":
+		url = processImage(src)
+		downloadprogress(url, "data/"+getFilename(url))
+	case "vid":
+		url = processVideo(src)
+		downloadprogress(url, "data/"+getFilename(url))
+	case "gal":
+		break
+	}
+}
+
+func processVideo(src string) string {
+	reg := regexp.MustCompile(`__fileurl = 'http://cdn.videos.motherlessmedia.com/videos/[a-zA-Z0-9]{3,9}.(mp4|webm|avi|mpg|mpeg|gif|gifv)`)
+	match := reg.FindString(src)
+	match = strings.Replace(match, `__fileurl = '`, "", 1)
+	return match
+}
+
+func processImage(src string) string {
+	reg := regexp.MustCompile(`__fileurl = 'http://cdn.images.motherlessmedia.com/images/[a-zA-Z0-9]{3,9}.(jpg|jpeg|png|gif)`)
+	match := reg.FindString(src)
+	match = strings.Replace(match, `__fileurl = '`, "", 1)
+	return match
+}
+
+// alte main, ugly, might be usefull
+func dmain() {
 	// ID = len(7)
 	// Gallery main = G + ID -> len(8)
 	// Gallery Images = G + I + ID -> len(9)
@@ -133,7 +168,7 @@ func main() {
 
 					downloadFromUrl(match, "./"+title)
 
-					fmt.Println("[!] ["+strconv.Itoa(imgagecount)+" | "+strconv.Itoa(maximg)+"]")
+					fmt.Println("[!] [" + strconv.Itoa(imgagecount) + " | " + strconv.Itoa(maximg) + "]")
 					imgagecount++
 				}
 				i++
