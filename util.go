@@ -67,6 +67,69 @@ func downloadFromUrl(url string, folder string) {
 	}
 }
 
+type WriteCounter struct {
+	Total int64
+}
+
+func (wc *WriteCounter) Write(p []byte) (int, error) {
+	n := len(p)
+	wc.Total += int64(n)
+	fmt.Printf("Read %d bytes for a total of %d\n", n, wc.Total)
+	return n, nil
+}
+
+func download(url, file string) {
+	out, err := os.Create(file)
+	if err != nil {
+		panic(err)
+	}
+
+	defer out.Close()
+
+	resp, err := http.Get(url)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	src := io.TeeReader(resp.Body, &WriteCounter{})
+	_, err = io.Copy(out, src)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func getFilename(url string) string {
+	x := strings.Split(url, "/")
+	return x[len(x)-1]
+}
+
+func downloadprogress(url, file string) {
+	dst, _ := os.Create(file)
+	defer dst.Close()
+	src, _ := http.Get(url)
+	defer src.Body.Close()
+
+	buf := make([]byte, 1000*1024)
+
+	var err error = nil
+	var start time.Time
+	var end time.Duration
+	for err == nil {
+		start = time.Now()
+		_, err = io.ReadFull(src.Body, buf)
+		end = time.Now().Sub(start)
+		fmt.Printf("\033[H\033[2J")
+		fmt.Printf("Time:\t%.4f/%d\t", end.Seconds(), len(buf))
+		fmt.Printf("Speed:\t%.4f\n", float64(1)/float64(end.Seconds())*float64(len(buf)))
+
+		// 146ms -> 100k
+		// 1000 / 146 * len(buf)
+		// 1000ms-> xxxK
+		dst.Write(buf)
+	}
+}
+
 func writeMetaData(url string, folder string) {
 	d1 := []byte(url)
 	ioutil.WriteFile(folder+"/metadata.txt", d1, 0644)
