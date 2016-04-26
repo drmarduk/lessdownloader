@@ -25,8 +25,23 @@ func main() {
 		url = processVideo(src)
 		downloadprogress(url, "data/"+getFilename(url))
 	case "gal":
+		img := NewMotherlessGallery(url)
+		img.Open()
+		images, err := img.GetImages()
+		if err != nil {
+			panic(err)
+		}
+		for _, i := range images {
+			downloadprogress(i, "data/"+getFilename(i))
+		}
 		break
 	}
+}
+
+func processGallery(src string) string {
+	// return Gallery ID
+	paths := strings.Split(src, "/")
+	return paths[len(paths)-1]
 }
 
 func processVideo(src string) string {

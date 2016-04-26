@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -22,6 +23,14 @@ func NewMotherlessGallery(url string) *MotherlessGallery {
 	return &MotherlessGallery{Url: url}
 }
 
+// rm is a simple replace for slices
+func rm(s string, list ...string) string {
+	for _, x := range list {
+		s = strings.Replace(s, x, "", -1)
+	}
+	return s
+}
+
 func (g *MotherlessGallery) Open() error {
 	var err error
 	g.src, err = httpGET(g.Url)
@@ -31,10 +40,7 @@ func (g *MotherlessGallery) Open() error {
 
 	imgRegex := regexp.MustCompile(`Images [( |)[0-9,]{1,10}( |)]`)
 	x := imgRegex.FindString(g.src)
-	x = strings.Replace(x, " ", "", -1)
-	x = strings.Replace(x, "Images[", "", 1)
-	x = strings.Replace(x, "]", "", 1)
-	x = strings.Replace(x, ",", "", -1)
+	x = rm(x, " ", "Images[", "]", ",")
 	y, err := strconv.Atoi(x)
 	if err != nil {
 		panic(err)
@@ -43,60 +49,68 @@ func (g *MotherlessGallery) Open() error {
 
 	vidRegex := regexp.MustCompile(`Videos [( |)[0-9,]{1,10}( |)]`)
 	x = vidRegex.FindString(g.src)
-	x = strings.Replace(x, " ", "", -1)
-	x = strings.Replace(x, "Videos[", "", 1)
-	x = strings.Replace(x, "]", "", 1)
-	x = strings.Replace(x, ",", "", -1)
+	x = rm(x, " ", "Videos[", "]", ",")
 	y, _ = strconv.Atoi(x)
 	g.VideoCount = y
 
 	galRegex := regexp.MustCompile(`Galleries [( |)[0-9,]{1,10}( |)]`)
 	x = galRegex.FindString(g.src)
-	x = strings.Replace(x, " ", "", -1)
-	x = strings.Replace(x, "Galleries[", "", 1)
-	x = strings.Replace(x, "]", "", 1)
-	x = strings.Replace(x, ",", "", -1)
+	x = rm(x, " ", "Galleries[", "]", ",")
 	y, _ = strconv.Atoi(x)
 	g.GalleryCount = y
 
 	postRegex := regexp.MustCompile(`Posts [( |)[0-9,]{1,10}( |)]`)
 	x = postRegex.FindString(g.src)
-	x = strings.Replace(x, " ", "", -1)
-	x = strings.Replace(x, "Posts[", "", 1)
-	x = strings.Replace(x, "]", "", 1)
-	x = strings.Replace(x, ",", "", -1)
+	x = rm(x, " ", "Posts[", "]", ",")
 	y, _ = strconv.Atoi(x)
 	g.PostCount = y
+
 	return nil
 }
 
-// Images [15,392]
-// Videos [4,831]
-// Images  [ 43 ]
-// Videos  [ 103 ]
-
 func (g *MotherlessGallery) GetImages() ([]string, error) {
 	var result []string
-
-	var pageCount int = g.ImageCount / 80 // ca. total pages
 	var i int = 1
 
-	for i = 1; i <= pageCount; i++ {
-		src, err := httpGET(g.Url + fmt.Sprintf("?page=%d", i))
+	for {
+		//for i = 1; i <= pageCount; i++ {
+		url := g.Url + fmt.Sprintf("?page=%d", i)
+		src, err := httpGET(url)
 		if err != nil {
-			panic(err)
+			panic(err) // TODO: change
 		}
 
 		// got source for every page, extract image urls
-		result = append(result, extractImageUrl(g.Url, src)...)
+		result = append(result, extractImagess(g.Url, src)...)
+		// ende der liste
+		if strings.Contains(src, `<span class="current" rel="0"> NEXT &raquo;</span>`) {
+			break
+		}
+		i += 1
 	}
-
-	fmt.Println(result)
 	return result, nil
 }
 
+func extractImagess(prefix, src string) []string {
+	// http://cdn.thumbs.motherlessmedia.com/thumbs/3533EFD-zoom.jpg?from_helper
+	re := regexp.MustCompile(`data-codename="[a-zA-Z0-9]{3,13}" `)
+	matches := re.FindAllString(src, -1)
+
+	var result []string
+
+	for _, tmp := range matches {
+		tmp = strings.Replace(tmp, `data-codename="`, "", 1)
+		tmp = strings.Replace(tmp, `" `, "", 1)
+		result = append(result,
+			"http://cdn.images.motherlessmedia.com/images/"+tmp+".jpg") // TODO: might be png, or else
+	}
+	log.Printf("Url: %s IoP: %d\n", prefix, len(result))
+
+	return result
+}
+
 func extractImageUrl(prefix, src string) []string {
-	re := regexp.MustCompile(`href="/[a-zA-Z0-9]{3,13}" class="img-container"`)
+	re := regexp.MustCompile(`href="(/[a-zA-Z0-9]{3,13}|)/[a-zA-Z0-9]{3,13}" class="img-container"`)
 	match := re.FindAllString(src, -1)
 
 	var result []string
@@ -106,6 +120,5 @@ func extractImageUrl(prefix, src string) []string {
 		tmp = strings.Replace(tmp, ` class="img-container"`, "", 1)
 		result = append(result, prefix+tmp)
 	}
-
 	return result
 }
