@@ -20,3 +20,17 @@ func TestProcessVideo(t *testing.T) {
 		}
 	}
 }
+
+func TestProcessGallery(t *testing.T) {
+	tests := []struct {
+		in, out string
+	}{
+		{"http://motherless.com/G2B58C78", "G2B58C78"},
+	}
+	for _, tt := range tests {
+		got := processGallery(tt.in)
+		if got != tt.out {
+			t.Fatalf("processGallery(%s): got: %s, expected: %s\n", tt.in, got, tt.out)
+		}
+	}
+}
