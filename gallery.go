@@ -10,6 +10,7 @@ import (
 
 type MotherlessGallery struct {
 	Url string
+	Id  string // die ID von der Gallery quasi
 
 	ImageCount   int
 	VideoCount   int
@@ -20,7 +21,10 @@ type MotherlessGallery struct {
 }
 
 func NewMotherlessGallery(url string) *MotherlessGallery {
-	return &MotherlessGallery{Url: url}
+	// da muss ich dem user (dir!!!) vertrauen
+	x := strings.Split(url, "/")
+	id := x[len(x)-1]
+	return &MotherlessGallery{Url: url, Id: id}
 }
 
 // rm is a simple replace for slices

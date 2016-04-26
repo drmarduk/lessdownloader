@@ -10,18 +10,21 @@ import (
 	_ "time"
 )
 
+var (
+	arg *string = flag.String("url", "", "url to parse")
+	typ *string = flag.String("typ", "img", "what typ to process")
+	// action *string = flag.String("action", "download", "the action to perform")
+)
+
 func main() {
-	var arg *string = flag.String("url", "", "url to parse")
-	var typ *string = flag.String("typ", "img", "what typ to process")
-	//var action *string = flag.String("action", "download", "the action to perform")
 	flag.Parse()
 	src, _ := httpGET(*arg)
 	url := ""
 	switch *typ {
-	case "img":
+	case "img": //TODO: make modern
 		url = processImage(src)
 		downloadprogress(url, "data/"+getFilename(url))
-	case "vid":
+	case "vid": //TODO: make modern
 		url = processVideo(src)
 		downloadprogress(url, "data/"+getFilename(url))
 	case "gal":
